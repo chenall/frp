@@ -1,4 +1,4 @@
-// +build !debug
+// +build debug
 
 // Copyright 2016 fatedier, fatedier@gmail.com
 //
@@ -24,6 +24,7 @@ import (
 	"reflect"
 
 	"github.com/fatedier/frp/utils/errors"
+	"github.com/fatedier/frp/utils/log"
 )
 
 func unpack(typeByte byte, buffer []byte, msgIn Message) (msg Message, err error) {
@@ -40,6 +41,7 @@ func unpack(typeByte byte, buffer []byte, msgIn Message) (msg Message, err error
 	}
 
 	err = json.Unmarshal(buffer, &msg)
+	log.Debug("unPackMsg: type:[%c],%#v\n", typeByte, msg)
 	return
 }
 
@@ -57,6 +59,7 @@ func Pack(msg Message) ([]byte, error) {
 	if !ok {
 		return nil, errors.ErrMsgType
 	}
+	log.Debug("PackMsg: type:[%c],%#v\n", typeByte, msg)
 	content, err := json.Marshal(msg)
 	if err != nil {
 		return nil, err

@@ -46,6 +46,7 @@ type ClientCommonConf struct {
 	TcpMux            bool
 	User              string
 	LoginFailExit     bool
+	Pull              bool
 	Start             map[string]struct{}
 	Protocol          string
 	HeartBeatInterval int64
@@ -91,6 +92,11 @@ func LoadClientCommonConf(conf ini.File) (cfg *ClientCommonConf, err error) {
 	tmpStr, ok = conf.Get("common", "server_dynamic")
 	if ok {
 		cfg.ServerDynamic = tmpStr
+	}
+
+	tmpStr, ok = conf.Get("common", "server_addr")
+	if ok {
+		cfg.ServerAddr = tmpStr
 	}
 
 	tmpStr, ok = conf.Get("common", "server_port")

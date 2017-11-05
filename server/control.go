@@ -17,6 +17,7 @@ package server
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"sync"
 	"time"
 
@@ -102,6 +103,16 @@ func (ctl *Control) Start() {
 		ServerUdpPort: config.ServerCommonCfg.BindUdpPort,
 		Error:         "",
 	}
+
+	if ctl.loginMsg.Pull && ctl.loginMsg.User != "" {
+		data, err := ioutil.ReadFile(fmt.Sprintf("%s%s.ini", config.ServerCommonCfg.ClientPath, ctl.loginMsg.User))
+		if err == nil {
+			loginRespMsg.PullConfig = string(data)
+		} else {
+			ctl.conn.Debug("loginMsgErr: %s", err)
+		}
+	}
+
 	msg.WriteMsg(ctl.conn, loginRespMsg)
 
 	go ctl.writer()

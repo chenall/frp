@@ -16,6 +16,7 @@ package server
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/fatedier/frp/assets"
@@ -261,7 +262,20 @@ func (svr *Service) RegisterControl(ctlConn frpNet.Conn, loginMsg *msg.Login) (e
 		err = fmt.Errorf("authorization timeout")
 		return
 	}
-	if util.GetAuthKey(config.ServerCommonCfg.PrivilegeToken, loginMsg.Timestamp) != loginMsg.PrivilegeKey {
+
+	if loginMsg.User == "" {
+		loginMsg.Pull = false
+	}
+
+	if loginMsg.Pull {
+		_, err = os.Stat(fmt.Sprintf("%s%s.ini", config.ServerCommonCfg.ClientPath, loginMsg.User))
+		if err != nil {
+			loginMsg.Pull = false
+			ctlConn.Debug("Client Config Err: %s", err)
+		}
+	}
+
+	if loginMsg.Pull == false && util.GetAuthKey(config.ServerCommonCfg.PrivilegeToken, loginMsg.Timestamp) != loginMsg.PrivilegeKey {
 		err = fmt.Errorf("authorization failed")
 		return
 	}

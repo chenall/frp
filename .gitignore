@@ -30,3 +30,4 @@ test/bin/
 
 # Cache
 *.swp
+.vs/

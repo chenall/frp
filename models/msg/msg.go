@@ -86,14 +86,16 @@ type Login struct {
 	RunId        string `json:"run_id"`
 
 	// Some global configures.
-	PoolCount int `json:"pool_count"`
+	Pull      bool `json:"pull"`
+	PoolCount int  `json:"pool_count"`
 }
 
 type LoginResp struct {
 	Version       string `json:"version"`
 	RunId         string `json:"run_id"`
-	ServerUdpPort int64  `json:"server_udp_port"`
 	Error         string `json:"error"`
+	PullConfig    string `json:"pxy_cfg"`
+	ServerUdpPort int64  `json:"server_udp_port"`
 }
 
 // When frpc login success, send this message to frps for running a new proxy.
@@ -104,7 +106,8 @@ type NewProxy struct {
 	UseCompression bool   `json:"use_compression"`
 
 	// tcp and udp only
-	RemotePort int64 `json:"remote_port"`
+	BindAddr   string `json:"bind_addr"`
+	RemotePort int64  `json:"remote_port"`
 
 	// http and https only
 	CustomDomains     []string `json:"custom_domains"`
@@ -181,5 +184,5 @@ type NatHoleResp struct {
 }
 
 type NatHoleSid struct {
-	Sid string `json；"sid"`
+	Sid string `json:"sid"`
 }

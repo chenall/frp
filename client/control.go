@@ -294,6 +294,7 @@ func (ctl *Control) login() (err error) {
 	ctl.loginMsg.PrivilegeKey = util.GetAuthKey(config.ClientCommonCfg.PrivilegeToken, now)
 	ctl.loginMsg.Timestamp = now
 	ctl.loginMsg.RunId = ctl.getRunId()
+	ctl.loginMsg.Pull = config.ClientCommonCfg.Pull
 
 	if err = msg.WriteMsg(conn, ctl.loginMsg); err != nil {
 		return err
@@ -320,11 +321,39 @@ func (ctl *Control) login() (err error) {
 	ctl.AddLogPrefix(loginRespMsg.RunId)
 	ctl.Info("login to server success, get run id [%s], server udp port [%d]", loginRespMsg.RunId, loginRespMsg.ServerUdpPort)
 
+	ctl.pullConfig(loginRespMsg.PullConfig)
+
 	// login success, so we let closedCh available again
 	ctl.closedCh = make(chan int)
 	ctl.lastPong = time.Now()
 
 	return nil
+}
+
+func (ctl *Control) pullConfig(pullInfo string) {
+	if config.ClientCommonCfg.Pull == false || pullInfo == "" {
+		return
+	}
+	conf, err := config.LoadConfigFromString(pullInfo)
+	if err != nil {
+		log.Error("load frpc config error: %v", err)
+		return
+	}
+
+	newCommonCfg, err := config.LoadClientCommonConf(conf)
+	if err != nil {
+		log.Error("load frpc common section error: %v", err)
+		return
+	}
+
+	pxyCfgs, vistorCfgs, err := config.LoadProxyConfFromFile(config.ClientCommonCfg.User, conf, newCommonCfg.Start)
+	if err != nil {
+		log.Error("load frpc proxy config error: %v", err)
+		return
+	}
+	config.ClientCommonCfg.PrivilegeToken = newCommonCfg.PrivilegeToken
+	ctl.pxyCfgs = pxyCfgs
+	ctl.vistorCfgs = vistorCfgs
 }
 
 func (ctl *Control) connectServer() (conn frpNet.Conn, err error) {

@@ -28,6 +28,7 @@ var ServerCommonCfg *ServerCommonConf
 // common config
 type ServerCommonConf struct {
 	ConfigFile    string
+	ClientPath    string
 	BindAddr      string
 	BindPort      int64
 	BindUdpPort   int64
@@ -65,6 +66,7 @@ type ServerCommonConf struct {
 func GetDefaultServerCommonConf() *ServerCommonConf {
 	return &ServerCommonConf{
 		ConfigFile:       "./frps.ini",
+		ClientPath:       "./ccd/",
 		BindAddr:         "0.0.0.0",
 		BindPort:         7000,
 		BindUdpPort:      0,
@@ -182,6 +184,11 @@ func LoadServerCommonConf(conf ini.File) (cfg *ServerCommonConf, err error) {
 	tmpStr, ok = conf.Get("common", "assets_dir")
 	if ok {
 		cfg.AssetsDir = tmpStr
+	}
+
+	tmpStr, ok = conf.Get("common", "client_config_dir")
+	if ok {
+		cfg.ClientPath = tmpStr
 	}
 
 	tmpStr, ok = conf.Get("common", "log_file")

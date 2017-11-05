@@ -79,7 +79,6 @@ func WriteMsg(c io.Writer, msg interface{}) (err error) {
 	if err != nil {
 		return
 	}
-
 	if _, err = c.Write(buffer); err != nil {
 		return
 	}

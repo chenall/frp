@@ -16,6 +16,7 @@ package config
 
 import (
 	"fmt"
+	"io"
 	"reflect"
 	"strconv"
 	"strings"
@@ -27,6 +28,35 @@ import (
 	ini "github.com/vaughan0/go-ini"
 )
 
+// 定义一个 Ustr 类型
+type Ustr struct {
+	s string // 数据流
+	i int    // 读写位置
+}
+
+// 根据字符串创建 Ustr 对象
+func strReader(s string) *Ustr {
+	return &Ustr{s, 0}
+}
+
+// 获取未读取部分的数据长度
+func (s *Ustr) Len() int {
+	return len(s.s) - s.i
+}
+
+// 实现 Ustr 类型的 Read 方法
+func (s *Ustr) Read(p []byte) (n int, err error) {
+	for ; s.i < len(s.s) && n < len(p); s.i++ {
+		p[n] = s.s[s.i]
+		n++
+	}
+	// 根据读取的字节数设置返回值
+	if n == 0 {
+		return n, io.EOF
+	}
+	return n, nil
+}
+
 var proxyConfTypeMap map[string]reflect.Type
 
 func init() {
@@ -37,6 +67,12 @@ func init() {
 	proxyConfTypeMap[consts.HttpsProxy] = reflect.TypeOf(HttpsProxyConf{})
 	proxyConfTypeMap[consts.StcpProxy] = reflect.TypeOf(StcpProxyConf{})
 	proxyConfTypeMap[consts.XtcpProxy] = reflect.TypeOf(XtcpProxyConf{})
+}
+
+func LoadConfigFromString(str string) (ini.File, error) {
+	file := make(ini.File)
+	err := file.Load(strReader(str))
+	return file, err
 }
 
 // NewConfByType creates a empty ProxyConf object by proxyType.
@@ -170,7 +206,10 @@ func (cfg *BindInfoConf) compare(cmp *BindInfoConf) bool {
 }
 
 func (cfg *BindInfoConf) LoadFromMsg(pMsg *msg.NewProxy) {
-	cfg.BindAddr = ServerCommonCfg.ProxyBindAddr
+	cfg.BindAddr = pMsg.BindAddr
+	if cfg.BindAddr == "" {
+		cfg.BindAddr = ServerCommonCfg.ProxyBindAddr
+	}
 	cfg.RemotePort = pMsg.RemotePort
 }
 
@@ -179,6 +218,15 @@ func (cfg *BindInfoConf) LoadFromFile(name string, section ini.Section) (err err
 		tmpStr string
 		ok     bool
 	)
+
+	if tmpStr, ok = section["bind_id"]; ok {
+		var id int64
+		if id, err = strconv.ParseInt(tmpStr, 10, 32); err != nil {
+			return fmt.Errorf("Parse conf error: proxy [%s] bind_id error", name)
+		}
+		cfg.BindAddr = fmt.Sprintf("127.%d.%d.%d", id>>16&0xff, id>>8&0xff, id&0xff)
+	}
+
 	if tmpStr, ok = section["remote_port"]; ok {
 		if cfg.RemotePort, err = strconv.ParseInt(tmpStr, 10, 64); err != nil {
 			return fmt.Errorf("Parse conf error: proxy [%s] remote_port error", name)
@@ -190,6 +238,7 @@ func (cfg *BindInfoConf) LoadFromFile(name string, section ini.Section) (err err
 }
 
 func (cfg *BindInfoConf) UnMarshalToMsg(pMsg *msg.NewProxy) {
+	pMsg.BindAddr = cfg.BindAddr
 	pMsg.RemotePort = cfg.RemotePort
 }
 

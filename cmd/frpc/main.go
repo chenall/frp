@@ -43,7 +43,7 @@ var (
 var usage string = `frpc is the client of frp
 
 Usage: 
-    frpc [-c config_file] [-L log_file] [--log-level=<log_level>] [--user=<user_name>] [--server-addr=<server_addr>] [--server-dynamic=<http_url>]
+    frpc [-c config_file] [-L log_file] [--log-level=<log_level>] [--user=<user_name>] [--server-addr=<server_addr>] [--server-dynamic=<http_url>] [--pull]
     frpc [-c config_file] --reload
     frpc -h | --help
     frpc -v | --version
@@ -54,6 +54,7 @@ Options:
     --log-level=<log_level>     set log level: debug, info, warn, error
     --server-addr=<server_addr> addr which frps is listening for, example: 0.0.0.0:7000
     --server-dynamic=<http_url> get frps addr from http_url, example: http://server.com/frp/
+    --pull                      pull configure from frp server(thin client mode)
     --reload                    reload configure file without program exit
     -h --help                   show this screen
     -v --version                show version
@@ -70,7 +71,7 @@ func main() {
 	}
 
 	conf, err := ini.LoadFile(confFile)
-	if err != nil {
+	if err != nil && args["--pull"].(bool) == false {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -81,6 +82,7 @@ func main() {
 		os.Exit(1)
 	}
 	config.ClientCommonCfg.ConfigFile = confFile
+	config.ClientCommonCfg.Pull = args["--pull"].(bool)
 
 	// check if reload command
 	if args["--reload"] != nil {
@@ -144,18 +146,23 @@ func main() {
 	}
 
 	if args["--server-addr"] != nil {
-		addr := strings.Split(args["--server-addr"].(string), ":")
-		if len(addr) != 2 {
-			fmt.Println("--server-addr format error: example 0.0.0.0:7000")
-			os.Exit(1)
+		serv := args["--server-addr"].(string)
+		if strings.ToLower(serv[:4]) == "http" {
+			config.ClientCommonCfg.ServerDynamic = serv
+		} else {
+			addr := strings.Split(serv, ":")
+			if len(addr) != 2 {
+				fmt.Println("--server-addr format error: example 0.0.0.0:7000")
+				os.Exit(1)
+			}
+			serverPort, err := strconv.ParseInt(addr[1], 10, 64)
+			if err != nil {
+				fmt.Println("--server-addr format error, example 0.0.0.0:7000")
+				os.Exit(1)
+			}
+			config.ClientCommonCfg.ServerAddr = addr[0]
+			config.ClientCommonCfg.ServerPort = serverPort
 		}
-		serverPort, err := strconv.ParseInt(addr[1], 10, 64)
-		if err != nil {
-			fmt.Println("--server-addr format error, example 0.0.0.0:7000")
-			os.Exit(1)
-		}
-		config.ClientCommonCfg.ServerAddr = addr[0]
-		config.ClientCommonCfg.ServerPort = serverPort
 	}
 
 	if args["-v"] != nil {
