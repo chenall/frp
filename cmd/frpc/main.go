@@ -82,7 +82,10 @@ func main() {
 		os.Exit(1)
 	}
 	config.ClientCommonCfg.ConfigFile = confFile
-	config.ClientCommonCfg.Pull = args["--pull"].(bool)
+
+	if args["--pull"].(bool) {
+		config.ClientCommonCfg.Pull = true
+	}
 
 	// check if reload command
 	if args["--reload"] != nil {

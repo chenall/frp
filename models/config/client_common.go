@@ -178,6 +178,11 @@ func LoadClientCommonConf(conf ini.File) (cfg *ClientCommonConf, err error) {
 		cfg.TcpMux = true
 	}
 
+	tmpStr, ok = conf.Get("common", "pull")
+	if ok && tmpStr == "true" {
+		cfg.Pull = true
+	}
+
 	tmpStr, ok = conf.Get("common", "user")
 	if ok {
 		cfg.User = tmpStr
